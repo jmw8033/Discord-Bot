@@ -1,5 +1,5 @@
 import requests, json, random
-import discordbot_config as config
+import config
 
 apikey = config.TENOR_TOKEN
 

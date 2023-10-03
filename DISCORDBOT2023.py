@@ -4,7 +4,7 @@ import asyncio
 import datetime
 import mytenorpy
 import myintents
-import discordbot_config as config
+import config
 
 # Constants
 MIN_WAIT = 1000
