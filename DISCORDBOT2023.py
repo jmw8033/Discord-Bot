@@ -72,8 +72,8 @@ class MyClient(discord.Client):
         counter = random.randint(1, 100)
         channel = self.get_channel(GENERAL_CHANNEL_ID) # general chat
         while not self.is_closed():
-            await self.send_rand_message(channel, counter)
             await self.wait_random_time()
+            await self.send_rand_message(channel, counter)
 
     async def send_rand_message(self, channel, counter):
             if counter % 3 == 0: # mention a random member
@@ -113,7 +113,7 @@ class MyClient(discord.Client):
         if self.start_wait_time is None or self.time_to_wait is None:
             return 0
         else:
-            return ((datetime.datetime.now() - self.start_wait_time).total_seconds() - self.time_to_wait) / 60
+            return round((self.time_to_wait - (datetime.datetime.now() - self.start_wait_time).total_seconds()) / 60)
 
 if __name__ == "__main__":
     intents=discord.Intents.all()
