@@ -112,25 +112,27 @@ class MyClient(discord.Client):
                     else (await client.get_channel(message.reference.channel_id).fetch_message(message.reference.message_id)).author
     
     async def play_random_sound(self, voice):
-        if not voice.is_connected() and self.sound_task is not None:
-            self.sound_task.cancel()
-            return
-        if voice.is_connected() and len(voice.channel.members) == 1:
-            await voice.disconnect()
-            self.sound_task.cancel()
-            return
-        
-        sound_files = [(f"{config.SOUND_DIR}/{x}.mp3", y) for x, y in [
-            ("A60", 5), ("AMBUSH", 5), ("AMBUSH2", 5), ("FIGURE", 10), ("FIGURE2", 10), ("HALT", 5),
-            ("HIDE", 10), ("JACK", 2), ("JEFF", 20), ("PSST", 40), ("SCREECH", 30), ("SEEK", 10), ("SEEK2", 10),
-            ("TIMOTHY", 5), ("RUSH", 10), ("ELEVATOR", 1), ("FNAF", 2)]]
-        values = [x for x, y in sound_files]
-        weights = [y for x, y in sound_files]
-        sound = random.choices(values, weights)[0]
+        await asyncio.sleep(random.randint(1, 30))
+        while True:
+            if not voice.is_connected() and self.sound_task is not None:
+                self.sound_task.cancel()
+                return
+            if voice.is_connected() and len(voice.channel.members) == 1:
+                await voice.disconnect()
+                self.sound_task.cancel()
+                return
+            
+            sound_files = [(f"{config.SOUND_DIR}/{x}.mp3", y) for x, y in [
+                ("A60", 5), ("AMBUSH", 5), ("AMBUSH2", 5), ("FIGURE", 10), ("FIGURE2", 10), ("HALT", 5),
+                ("HIDE", 10), ("JACK", 2), ("JEFF", 20), ("PSST", 40), ("SCREECH", 30), ("SEEK", 10), ("SEEK2", 10),
+                ("TIMOTHY", 5), ("RUSH", 10), ("ELEVATOR", 1), ("FNAF", 2)]]
+            values = [x for x, y in sound_files]
+            weights = [y for x, y in sound_files]
+            sound = random.choices(values, weights)[0]
 
-        voice.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source=sound))
-        print(f"Playing {sound}")
-        await asyncio.sleep(await self.wait_random_time(2000, 5000, 200, 20000))
+            voice.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source=sound))
+            print(f"Playing {sound}")
+            await asyncio.sleep(await self.wait_random_time(100, 500, 10, 20000))
 
     @property
     def rand_message(self):
