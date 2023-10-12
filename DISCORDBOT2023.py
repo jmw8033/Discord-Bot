@@ -30,6 +30,7 @@ class MyClient(discord.Client):
         if INTENTS:
             print("Initializing intents...")
             self.myintents = myintents.MyIntents(self.msg_list)
+            await self.get_intents()
             print("Intents initialized")
         await client.change_presence(activity=discord.Streaming(name="Shark Tank", url="https://www.twitch.tv/gothamchess"))
         self.msg_task = self.loop.create_task(self.msg_loop()) # start message loop
@@ -78,34 +79,39 @@ class MyClient(discord.Client):
         elif dice < 5:
             await message.channel.send(mytenorpy.search_tenor(message.content), reference=message)
 
+    async def get_intents(self):
+        #creates Intents object using myintents.py using loop.run_in_executor to avoid blocking
+        await self.loop.run_in_executor(None, self.myintents.get_intents)
+
     async def msg_loop(self):
         print("rand_message Loop Started")
         counter = random.randint(1, 100)
         channel = self.get_channel(GENERAL_CHANNEL_ID) # general chat
         while not self.is_closed():
             self.start_wait_time = datetime.datetime.now()
-            await asyncio.sleep(self.wait_random_time())
+            time_to_sleep = await self.wait_random_time()
+            await asyncio.sleep(time_to_sleep)
             await self.send_rand_message(channel, counter)
 
     async def send_rand_message(self, channel, counter):
-            if counter % 3 == 0: # mention a random member
-                random_member = random.choice(self.guild.members)
-                await channel.send(f"<@{random_member.id}> {self.rand_message}")
-            elif counter % 5 == 0: # send tenor gif of random message
-                gif = mytenorpy.search_tenor(self.rand_message)
-                if gif != None:
-                    await channel.send(gif)
-                else:
-                    print("Tenor failed")
-            else: # send random message
-                await channel.send(self.rand_message)
-            counter += 1
+        if counter % 3 == 0: # mention a random member
+            random_member = random.choice(self.guild.members)
+            await channel.send(f"<@{random_member.id}> {self.rand_message}")
+        elif counter % 5 == 0: # send tenor gif of random message
+            gif = mytenorpy.search_tenor(self.rand_message)
+            if gif != None:
+                await channel.send(gif)
+            else:
+                print("Tenor failed")
+        else: # send random message
+            await channel.send(self.rand_message)
+        counter += 1
 
     async def wait_random_time(self, gauss_mean=GAUSS_MEAN, gauss_std=GAUSS_STD, min_wait=MIN_WAIT, max_wait=MAX_WAIT):
-            # wait for a random time
-            self.time_to_wait = max(min(abs(random.gauss(gauss_mean, gauss_std)), max_wait), min_wait)
-            print(f"Waiting {self.time_to_wait} seconds")
-            return self.time_to_wait
+        # wait for a random time
+        self.time_to_wait = max(min(abs(random.gauss(gauss_mean, gauss_std)), max_wait), min_wait)
+        print(f"Waiting {self.time_to_wait} seconds")
+        return self.time_to_wait
 
     async def get_reply_author(self, message):
         return None if message.reference is None or client.get_channel(message.reference.channel_id) is None  \
