@@ -15,6 +15,10 @@ GAUSS_MEAN = 8000
 GAUSS_STD = 20000
 MESSAGE_LIMIT = None
 INTENTS = True
+SOUND_FILES = [(f"{config.SOUND_DIR}/{x}.mp3", y) for x, y in [
+    ("A60", 5), ("AMBUSH", 5), ("AMBUSH2", 5), ("FIGURE", 10), ("FIGURE2", 10), ("HALT", 5),
+    ("HIDE", 10), ("JACK", 2), ("JEFF", 20), ("PSST", 40), ("SCREECH", 30), ("SEEK", 10), ("SEEK2", 10),
+    ("TIMOTHY", 5), ("RUSH", 10), ("ELEVATOR", 1), ("FNAF", 2)]]
 
 class MyClient(discord.Client):
     async def on_ready(self):
@@ -33,7 +37,8 @@ class MyClient(discord.Client):
             await self.get_intents()
             print("Intents initialized")
         await client.change_presence(activity=discord.Streaming(name="Shark Tank", url="https://www.twitch.tv/gothamchess"))
-        self.msg_task = self.loop.create_task(self.msg_loop()) # start message loop
+        #self.msg_task = self.loop.create_task(self.msg_loop()) # start message loop
+
 
     async def initialize_msg_list(self):
         print("Getting messages...")
@@ -42,6 +47,7 @@ class MyClient(discord.Client):
                 if message.content and message.author != self.user:
                     self.msg_list.append(message.content)
         print(f"{len(self.msg_list)} messages found")
+
 
     async def on_message(self, message):
         # send a message to the channel the message was sent in
@@ -66,22 +72,45 @@ class MyClient(discord.Client):
                 await message.channel.send(f"{self.time_left} minutes remain", reference=message)
                 return
             
-            if message.content.lower().endswith("join"):
-                voice_state = message.author.voice
-                if voice_state and self.guild.voice_client not in self.voice_clients:
-                    voice = await voice_state.channel.connect()
-                    self.sound_task = self.loop.create_task(self.play_random_sound(voice))
+            if message.content.lower().endswith(("join", "doors", "ben")):
+                if not any([x.is_connected() for x in self.voice_clients]):
+                    voice = await self.join_voice(message)
+                    if not voice:
+                        return
+                else:
+                    voice = self.voice_clients[0]
+
+                if voice.is_playing():
+                    voice.stop()
+
+                if message.content.lower().endswith("join"):
+                    self.sound_task = self.loop.create_task(self.random_sound_loop(voice))
+                
+                if message.content.lower().endswith("doors"):
+                    await self.play_sound(voice, f"{config.SOUND_DIR}/JEFF.mp3")
+                
+                if message.content.lower().endswith("ben"):
+                    await self.play_rsound(voice)
                 return
-            
+
             if INTENTS:
                 response = self.myintents.get_response(message)
                 await message.channel.send(response, reference=message)
         elif dice < 5:
             await message.channel.send(mytenorpy.search_tenor(message.content), reference=message)
 
+
+    async def join_voice(self, message):
+        voice_state = message.author.voice
+        if voice_state and self.guild.voice_client not in self.voice_clients:
+            return await voice_state.channel.connect()
+        return None
+
+
     async def get_intents(self):
         #creates Intents object using myintents.py using loop.run_in_executor to avoid blocking
         await self.loop.run_in_executor(None, self.myintents.get_intents)
+
 
     async def msg_loop(self):
         print("rand_message Loop Started")
@@ -92,6 +121,7 @@ class MyClient(discord.Client):
             time_to_sleep = await self.wait_random_time()
             await asyncio.sleep(time_to_sleep)
             await self.send_rand_message(channel, counter)
+
 
     async def send_rand_message(self, channel, counter):
         if counter % 3 == 0: # mention a random member
@@ -107,17 +137,34 @@ class MyClient(discord.Client):
             await channel.send(self.rand_message)
         counter += 1
 
+
     async def wait_random_time(self, gauss_mean=GAUSS_MEAN, gauss_std=GAUSS_STD, min_wait=MIN_WAIT, max_wait=MAX_WAIT):
         # wait for a random time
         self.time_to_wait = max(min(abs(random.gauss(gauss_mean, gauss_std)), max_wait), min_wait)
         print(f"Waiting {self.time_to_wait} seconds")
         return self.time_to_wait
 
+
     async def get_reply_author(self, message):
         return None if message.reference is None or client.get_channel(message.reference.channel_id) is None  \
                     else (await client.get_channel(message.reference.channel_id).fetch_message(message.reference.message_id)).author
-    
-    async def play_random_sound(self, voice):
+
+
+    async def play_sound(self, voice, sound):
+        if not voice.is_connected():
+            return
+        voice.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source=sound))
+        print(f"Playing {sound}")
+
+
+    async def play_rsound(self, voice):
+        values = [x for x, y in SOUND_FILES]
+        weights = [y for x, y in SOUND_FILES]
+        sound = random.choices(values, weights)[0]
+        await self.play_sound(voice, sound)
+
+
+    async def random_sound_loop(self, voice):
         await asyncio.sleep(random.randint(1, 30))
         while True:
             if not voice.is_connected() and self.sound_task is not None:
@@ -128,17 +175,9 @@ class MyClient(discord.Client):
                 self.sound_task.cancel()
                 return
             
-            sound_files = [(f"{config.SOUND_DIR}/{x}.mp3", y) for x, y in [
-                ("A60", 5), ("AMBUSH", 5), ("AMBUSH2", 5), ("FIGURE", 10), ("FIGURE2", 10), ("HALT", 5),
-                ("HIDE", 10), ("JACK", 2), ("JEFF", 20), ("PSST", 40), ("SCREECH", 30), ("SEEK", 10), ("SEEK2", 10),
-                ("TIMOTHY", 5), ("RUSH", 10), ("ELEVATOR", 1), ("FNAF", 2)]]
-            values = [x for x, y in sound_files]
-            weights = [y for x, y in sound_files]
-            sound = random.choices(values, weights)[0]
-
-            voice.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source=sound))
-            print(f"Playing {sound}")
+            await self.play_rsound(voice)
             await asyncio.sleep(await self.wait_random_time(100, 500, 10, 20000))
+
 
     @property
     def rand_message(self):
@@ -147,12 +186,14 @@ class MyClient(discord.Client):
             if message != None:
                 return message
             
+
     @property
     def time_left(self):
         if self.start_wait_time is None or self.time_to_wait is None:
             return 0
         else:
             return round((self.time_to_wait - (datetime.datetime.now() - self.start_wait_time).total_seconds()) / 60)
+
 
 if __name__ == "__main__":
     intents=discord.Intents.all()
