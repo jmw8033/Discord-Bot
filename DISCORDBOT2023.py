@@ -65,12 +65,13 @@ class MyClient(discord.Client):
         # send a message if the bot is mentioned
         if str(self.user.id) in message.content or reply_author == self.user or "@everyone" in message.content:
             if not self.initialized:
-                await message.channel.send("Hey guys, I won't be on. I feel like dogshit right now")
-                return
+                return await message.channel.send("Hey guys, I won't be on. I feel like dogshit right now")
             
             if message.content.lower().endswith("when"): # send time left until next message
-                await message.channel.send(f"{self.time_left} minutes remain", reference=message)
-                return
+                return await message.channel.send(f"{self.time_left} minutes remain", reference=message)
+            
+            if message.content.lower().endswith("what"): # leave voice channel
+                return await self.send_rmessage(message.channel, reference=message)
             
             if message.content.lower().endswith(("join", "doors", "ben")):
                 if not any([x.is_connected() for x in self.voice_clients]):
@@ -113,28 +114,28 @@ class MyClient(discord.Client):
 
 
     async def msg_loop(self):
-        print("rand_message Loop Started")
+        print("rmessage Loop Started")
         counter = random.randint(1, 100)
         channel = self.get_channel(GENERAL_CHANNEL_ID) # general chat
         while not self.is_closed():
             self.start_wait_time = datetime.datetime.now()
             time_to_sleep = await self.wait_random_time()
             await asyncio.sleep(time_to_sleep)
-            await self.send_rand_message(channel, counter)
+            await self.send_rmessage(channel, counter)
 
 
-    async def send_rand_message(self, channel, counter):
+    async def send_rmessage(self, channel, counter=0, reference=None):
         if counter % 3 == 0: # mention a random member
             random_member = random.choice(self.guild.members)
-            await channel.send(f"<@{random_member.id}> {self.rand_message}")
+            await channel.send(f"<@{random_member.id}> {self.rmessage}", reference=reference)
         elif counter % 5 == 0: # send tenor gif of random message
-            gif = mytenorpy.search_tenor(self.rand_message)
+            gif = mytenorpy.search_tenor(self.rmessage)
             if gif != None:
                 await channel.send(gif)
             else:
                 print("Tenor failed")
         else: # send random message
-            await channel.send(self.rand_message)
+            await channel.send(self.rmessage)
         counter += 1
 
 
@@ -180,7 +181,7 @@ class MyClient(discord.Client):
 
 
     @property
-    def rand_message(self):
+    def rmessage(self):
         while True:
             message = random.choice(self.msg_list)
             if message != None:
