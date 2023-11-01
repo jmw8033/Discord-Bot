@@ -15,10 +15,6 @@ GAUSS_MEAN = 8000
 GAUSS_STD = 20000
 MESSAGE_LIMIT = None
 INTENTS = True
-SOUND_FILES = [(f"{config.SOUND_DIR}/{x}.mp3", y) for x, y in [
-    ("A60", 5), ("AMBUSH", 5), ("AMBUSH2", 5), ("FIGURE", 10), ("FIGURE2", 10), ("HALT", 5),
-    ("HIDE", 10), ("JACK", 2), ("JEFF", 20), ("PSST", 40), ("SCREECH", 30), ("SEEK", 10), ("SEEK2", 10),
-    ("TIMOTHY", 5), ("RUSH", 10), ("ELEVATOR", 1), ("FNAF", 2)]]
 
 class MyClient(discord.Client):
     async def on_ready(self):
@@ -159,8 +155,8 @@ class MyClient(discord.Client):
 
 
     async def play_rsound(self, voice):
-        values = [x for x, y in SOUND_FILES]
-        weights = [y for x, y in SOUND_FILES]
+        values = [x for x, y in config.SOUND_FILES]
+        weights = [y for x, y in config.SOUND_FILES]
         sound = random.choices(values, weights)[0]
         await self.play_sound(voice, sound)
 
