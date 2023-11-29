@@ -116,6 +116,7 @@ class MyClient(discord.Client):
         while not self.is_closed():
             self.start_wait_time = datetime.datetime.now()
             time_to_sleep = await self.wait_random_time()
+            print(f"Waiting {time_to_sleep} seconds (msg loop)")
             await asyncio.sleep(time_to_sleep)
             await self.send_rmessage(channel, counter)
 
@@ -172,8 +173,10 @@ class MyClient(discord.Client):
                 self.sound_task.cancel()
                 return
             
+            time_to_wait = await self.wait_random_time(100, 500, 10, 20000)
+            print(f"Waiting {time_to_wait} seconds (sound loop)")
             await self.play_rsound(voice)
-            await asyncio.sleep(await self.wait_random_time(100, 500, 10, 20000))
+            await asyncio.sleep(time_to_wait)
 
 
     @property
