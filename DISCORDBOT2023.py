@@ -36,7 +36,7 @@ class MyClient(discord.Client):
         await client.change_presence(activity=discord.Streaming(name="Shark Tank", url="https://www.twitch.tv/gothamchess"))
         #self.msg_task = self.loop.create_task(self.msg_loop()) # start message loop
 
- 
+
     async def initialize_msg_list(self):
         print("Getting messages...")
         with open(os.path.join(os.path.dirname(__file__), "RawMessages.txt"), encoding="utf-8") as f:
