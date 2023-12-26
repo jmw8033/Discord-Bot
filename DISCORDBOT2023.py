@@ -5,12 +5,13 @@ import datetime
 import mytenorpy
 import myintents
 import config
+import os
 
 # Constants
 MIN_WAIT = 1000
 MAX_WAIT = 100000
 GUILD_ID = 850841282485289010
-GENERAL_CHANNEL_ID = 850841282485289015
+GENERAL_CHANNEL_ID = 1186760274980651018
 GAUSS_MEAN = 8000
 GAUSS_STD = 20000
 MESSAGE_LIMIT = None
@@ -20,7 +21,7 @@ class MyClient(discord.Client):
     async def on_ready(self):
         print(f"{self.user} has connected to Discord!")
         self.guild = self.get_guild(GUILD_ID) # get guild
-        self.msg_list = [f"<@{member.id}>" for member in self.guild.members] # list of all members
+        self.msg_list = [f"<@{member.id}>" for member in self.guild.members] # list of all messages, starts with mentions of all members
         self.initialized = False
         self.start_wait_time = None
         self.time_to_wait = None
@@ -38,11 +39,15 @@ class MyClient(discord.Client):
 
     async def initialize_msg_list(self):
         print("Getting messages...")
+        with open(os.path.join(os.path.dirname(__file__), "RawMessages.txt"), encoding="utf-8") as f:
+            for line in f:
+                self.msg_list.append(line)
+        print(f"{len(self.msg_list)} raw messages found")
         for channel in self.guild.text_channels: # get list of all messages
             async for message in channel.history(limit=MESSAGE_LIMIT):
                 if message.content and message.author != self.user:
                     self.msg_list.append(message.content)
-        print(f"{len(self.msg_list)} messages found")
+        print(f"{len(self.msg_list)} total messages found")
 
 
     async def on_message(self, message):
