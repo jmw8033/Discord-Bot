@@ -2,7 +2,7 @@ import discord
 import random
 import asyncio
 import datetime
-import mytenorpy
+import mytenorpy 
 import myintents
 import config
 import os
@@ -16,6 +16,7 @@ GAUSS_MEAN = 8000
 GAUSS_STD = 20000
 MESSAGE_LIMIT = None
 INTENTS = True
+MESSAGE_HISTORY = True
 
 class MyClient(discord.Client):
     async def on_ready(self):
@@ -43,6 +44,9 @@ class MyClient(discord.Client):
             for line in f:
                 self.msg_list.append(line)
         print(f"{len(self.msg_list)} raw messages found")
+
+        if not MESSAGE_HISTORY:
+            return
         for channel in self.guild.text_channels: # get list of all messages
             async for message in channel.history(limit=MESSAGE_LIMIT):
                 if message.content and message.author != self.user:
@@ -121,9 +125,8 @@ class MyClient(discord.Client):
         while not self.is_closed():
             self.start_wait_time = datetime.datetime.now()
             time_to_sleep = await self.wait_random_time()
-            print(f"Waiting {time_to_sleep} seconds (msg loop)")
             await asyncio.sleep(time_to_sleep)
-            await self.send_rmessage(channel, counter)
+            await self.send_rmessage(channel, counter) 
 
 
     async def send_rmessage(self, channel, counter=0, reference=None):
