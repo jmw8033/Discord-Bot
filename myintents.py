@@ -30,4 +30,6 @@ class MyIntents:
         closest_responses = self.clusters[label]
 
         selected_response = random.choice(closest_responses)
+        if not selected_response:
+            return self.get_response(message)
         return selected_response

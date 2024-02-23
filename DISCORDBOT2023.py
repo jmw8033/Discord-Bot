@@ -17,6 +17,7 @@ GAUSS_STD = 20000
 MESSAGE_LIMIT = None
 INTENTS = True
 MESSAGE_HISTORY = True
+MESSAGE_LOOP = False
 
 class MyClient(discord.Client):
     async def on_ready(self):
@@ -26,7 +27,7 @@ class MyClient(discord.Client):
         self.initialized = False
         self.start_wait_time = None
         self.time_to_wait = None
-        await client.change_presence(activity=discord.Game("Getting Bitches Simulator 2023"))            
+        await client.change_presence(activity=discord.Game("I am coming"))            
         await self.initialize_msg_list()
         self.initialized = True
         if INTENTS:
@@ -35,7 +36,8 @@ class MyClient(discord.Client):
             await self.get_intents()
             print("Intents initialized")
         await client.change_presence(activity=discord.Streaming(name="Shark Tank", url="https://www.twitch.tv/gothamchess"))
-        #self.msg_task = self.loop.create_task(self.msg_loop()) # start message loop
+        if MESSAGE_LOOP:
+            self.msg_task = self.loop.create_task(self.msg_loop()) # start message loop
 
 
     async def initialize_msg_list(self):
@@ -61,6 +63,9 @@ class MyClient(discord.Client):
             return
         
         if message.author == self.user:
+            return
+
+        if message.channel.id == 1118732808752484402:
             return
         
         self.msg_list.append(message.content)
