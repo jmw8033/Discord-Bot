@@ -68,6 +68,11 @@ class MyClient(discord.Client):
         if message.channel.id == 1118732808752484402:
             return
         
+        # if message is a DM from me, the first word is the destination and the rest is the message
+        if isinstance(message.channel, discord.channel.DMChannel) and message.author.id == 188869711264481280:
+            message = message.content.split(" ")
+            return await self.send_message(message[0], " ".join(message[1:]))
+        
         self.msg_list.append(message.content)
         dice = random.randint(1, 100)
         reply_author = await self.get_reply_author(message)
@@ -109,6 +114,17 @@ class MyClient(discord.Client):
                 await message.channel.send(response, reference=message)
         elif dice < 5:
             await message.channel.send(mytenorpy.search_tenor(message.content), reference=message)
+
+
+    async def send_message(self, destination, message):
+        if destination == "server":
+            destination = self.get_channel(GENERAL_CHANNEL_ID)
+        else:
+            destination = self.get_user(int(destination))
+
+        if destination is None or message is None:
+            return
+        await destination.send(message)
 
 
     async def join_voice(self, message):
