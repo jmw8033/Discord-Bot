@@ -116,7 +116,7 @@ class MyClient(discord.Client):
                 except discord.errors.HTTPException:
                     print("Message failed, trying again")
                     response = self.myintents.get_response(message)
-                    await message.channel.send(response)
+                    await message.channel.send(response, reference=message)
         elif dice < 5:
             await message.channel.send(mytenorpy.search_tenor(message.content), reference=message)
 
