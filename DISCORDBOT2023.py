@@ -20,10 +20,14 @@ MESSAGE_HISTORY = True
 MESSAGE_LOOP = False
 
 class MyClient(discord.Client):
-    async def on_ready(self):
+
+    async def on_ready(self): # called when the bot is logged in, initializes variables
         print(f"{self.user} has connected to Discord!")
+        print(f"Intentes: {INTENTS}, Message History: {MESSAGE_HISTORY}, Message Loop: {MESSAGE_LOOP}")
+
         self.guild = self.get_guild(GUILD_ID) # get guild
         self.msg_list = [f"<@{member.id}>" for member in self.guild.members] # list of all messages, starts with mentions of all members
+        self.role_list = [role.id for role in self.guild.roles][6:17] # list of roles to assign
         self.initialized = False
         self.start_wait_time = None
         self.time_to_wait = None
@@ -40,15 +44,17 @@ class MyClient(discord.Client):
             self.msg_task = self.loop.create_task(self.msg_loop()) # start message loop
 
 
-    async def initialize_msg_list(self):
+    async def initialize_msg_list(self): # get all messages from the guild, store in msg_list
         print("Getting messages...")
         with open(os.path.join(os.path.dirname(__file__), "RawMessages.txt"), encoding="utf-8") as f:
             for line in f:
                 self.msg_list.append(line)
-        print(f"{len(self.msg_list)} raw messages found")
 
         if not MESSAGE_HISTORY:
+            print(f"{len(self.msg_list)} total messages found (raw)")
             return
+        
+        print(f"{len(self.msg_list)} raw messages found")
         for channel in self.guild.text_channels: # get list of all messages
             async for message in channel.history(limit=MESSAGE_LIMIT):
                 if message.content and message.author != self.user:
@@ -56,16 +62,15 @@ class MyClient(discord.Client):
         print(f"{len(self.msg_list)} total messages found")
 
 
-    async def on_message(self, message):
-        # send a message to the channel the message was sent in
+    async def on_message(self, message): # called when a message is sent in a channel the bot is in
         print(f'{message.author}: {message.content}')
-        if not self.msg_list:
+        if not self.msg_list: # ignore messages until msg_list is initialized
             return
         
-        if message.author == self.user:
+        if message.author == self.user: # ignore messages from the bot
             return
 
-        if message.channel.id == 1118732808752484402:
+        if message.channel.id == 1118732808752484402: # quotes channel
             return
         
         # if message is a DM from me, the first word is the destination and the rest is the message
@@ -73,8 +78,9 @@ class MyClient(discord.Client):
             message = message.content.split(" ")
             return await self.send_message(message[0], " ".join(message[1:]))
         
-        self.msg_list.append(message.content)
-        dice = random.randint(1, 100)
+    
+        self.msg_list.append(message.content) 
+        dice = random.randint(1, 100) # random number to determine action for send_rmessage
         reply_author = await self.get_reply_author(message)
 
         # send a message if the bot is mentioned
@@ -82,13 +88,27 @@ class MyClient(discord.Client):
             if not self.initialized:
                 return await message.channel.send("Hey guys, I won't be on. I feel like dogshit right now")
             
-            if message.content.lower().endswith("when"): # send time left until next message
-                return await message.channel.send(f"{self.time_left} minutes remain", reference=message)
+            if "ban" in message.content.lower(): # assign random roles to a member
+                member_id = message.content.lower().split(" ")[-1].replace("<", "").replace(">", "").replace("@", "").replace("!", "")
+                if not member_id.isdigit():
+                    return await message.channel.send("Invalid member ID")    
+                 
+                member = self.guild.get_member(int(member_id))
+                if member is None:
+                    return await message.channel.send("Member not found")
+                
+                roles = random.sample(self.role_list, random.randint(1, 5))
+                # remove previous roles
+                for role in member.roles:
+                    if role.id in self.role_list:
+                        await member.remove_roles(role)
+
+                for role in roles:
+                    await member.add_roles(self.guild.get_role(role))
+
+                return await message.channel.send(f"{member.mention}, you're banned", reference=message)
             
-            if message.content.lower().endswith("what"): # leave voice channel
-                return await self.send_rmessage(message.channel, reference=message)
-            
-            if message.content.lower().endswith(("join", "doors", "ben")):
+            if message.content.lower().endswith(("join", "doors", "ben")): # join voice channel / play sound
                 if not any([x.is_connected() for x in self.voice_clients]):
                     voice = await self.join_voice(message)
                     if not voice:
