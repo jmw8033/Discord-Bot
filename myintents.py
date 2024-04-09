@@ -29,7 +29,8 @@ class MyIntents:
         label = self.model.predict(user_vector)[0]
         closest_responses = self.clusters[label]
 
-        selected_response = random.choice(closest_responses)
+        weights = [i for i in range(len(closest_responses), 0, -1)]
+        selected_response = random.choices(closest_responses, weights=weights)
         if not selected_response:
             return self.get_response(message)
-        return selected_response
+        return selected_response[0]

@@ -23,7 +23,7 @@ class MyClient(discord.Client):
 
     async def on_ready(self): # called when the bot is logged in, initializes variables
         print(f"{self.user} has connected to Discord!")
-        print(f"Intentes: {INTENTS}, Message History: {MESSAGE_HISTORY}, Message Loop: {MESSAGE_LOOP}")
+        print(f"Intents: {INTENTS} \nMessage History: {MESSAGE_HISTORY} \nMessage Loop: {MESSAGE_LOOP}\n")
 
         self.guild = self.get_guild(GUILD_ID) # get guild
         self.msg_list = [f"<@{member.id}>" for member in self.guild.members] # list of all messages, starts with mentions of all members
@@ -54,7 +54,7 @@ class MyClient(discord.Client):
             print(f"{len(self.msg_list)} total messages found (raw)")
             return
         
-        print(f"{len(self.msg_list)} raw messages found")
+        print(f"{len(self.msg_list)} raw messages found, getting all messages...")
         for channel in self.guild.text_channels: # get list of all messages
             async for message in channel.history(limit=MESSAGE_LIMIT):
                 if message.content and message.author != self.user:
@@ -83,30 +83,32 @@ class MyClient(discord.Client):
         dice = random.randint(1, 100) # random number to determine action for send_rmessage
         reply_author = await self.get_reply_author(message)
 
-        # send a message if the bot is mentioned
+        # send a message if the bot is mentioned or replied to
         if str(self.user.id) in message.content or reply_author == self.user or "@everyone" in message.content:
             if not self.initialized:
                 return await message.channel.send("Hey guys, I won't be on. I feel like dogshit right now")
             
+            parsed_message = message.content.replace("<@" + str(self.user.id) + ">", "").replace("@everyone", "").strip()
+
+            if parsed_message.lower().startswith("pick"):
+                options = parsed_message.split(" ")[1:]
+                return await message.channel.send(random.choice(options), reference=message)
+            
             if "ban" in message.content.lower(): # assign random roles to a member
                 member_id = message.content.lower().split(" ")[-1].replace("<", "").replace(">", "").replace("@", "").replace("!", "")
-                if not member_id.isdigit():
-                    return await message.channel.send("Invalid member ID")    
-                 
-                member = self.guild.get_member(int(member_id))
-                if member is None:
-                    return await message.channel.send("Member not found")
-                
-                roles = random.sample(self.role_list, random.randint(1, 5))
-                # remove previous roles
-                for role in member.roles:
-                    if role.id in self.role_list:
-                        await member.remove_roles(role)
+                if member_id.isdigit():    
+                    member = self.guild.get_member(int(member_id))
+                    if member:
+                        roles = random.sample(self.role_list, random.randint(1, 5))
+                        # remove previous roles
+                        for role in member.roles:
+                            if role.id in self.role_list:
+                                await member.remove_roles(role)
 
-                for role in roles:
-                    await member.add_roles(self.guild.get_role(role))
+                        for role in roles:
+                            await member.add_roles(self.guild.get_role(role))
 
-                return await message.channel.send(f"{member.mention}, you're banned", reference=message)
+                        return await message.channel.send(f"{member.mention}, you're banned", reference=message)
             
             if message.content.lower().endswith(("join", "doors", "ben")): # join voice channel / play sound
                 if not any([x.is_connected() for x in self.voice_clients]):
@@ -129,7 +131,7 @@ class MyClient(discord.Client):
                     await self.play_rsound(voice)
                 return
 
-            if INTENTS:
+            if INTENTS: # respond using intents
                 response = self.myintents.get_response(message)
                 try:
                     await message.channel.send(response, reference=message)
@@ -137,7 +139,8 @@ class MyClient(discord.Client):
                     print("Message failed, trying again")
                     response = self.myintents.get_response(message)
                     await message.channel.send(response, reference=message)
-        elif dice < 5:
+
+        elif dice < 5: # send a random message
             await message.channel.send(mytenorpy.search_tenor(message.content), reference=message)
 
 
