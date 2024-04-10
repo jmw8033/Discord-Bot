@@ -6,18 +6,21 @@ import mytenorpy
 import myintents
 import config
 import os
+import serial
+import requests
 
 # Constants
 MIN_WAIT = 1000
 MAX_WAIT = 100000
-GUILD_ID = 850841282485289010
-GENERAL_CHANNEL_ID = 1186760274980651018
+GUILD_ID = config.GUILD_ID
+GENERAL_CHANNEL_ID = config.GENERAL_CHANNEL_ID
 GAUSS_MEAN = 8000
 GAUSS_STD = 20000
 MESSAGE_LIMIT = None
-INTENTS = True
-MESSAGE_HISTORY = True
+INTENTS = False
+MESSAGE_HISTORY = False
 MESSAGE_LOOP = False
+SERIAL = serial.Serial(config.COM_PORT, 9600, timeout=0)
 
 class MyClient(discord.Client):
 
@@ -42,6 +45,7 @@ class MyClient(discord.Client):
         await client.change_presence(activity=discord.Streaming(name="Shark Tank", url="https://www.twitch.tv/gothamchess"))
         if MESSAGE_LOOP:
             self.msg_task = self.loop.create_task(self.msg_loop()) # start message loop
+        client.loop.create_task(self.check_serial())
 
 
     async def initialize_msg_list(self): # get all messages from the guild, store in msg_list
@@ -142,6 +146,20 @@ class MyClient(discord.Client):
 
         elif dice < 5: # send a random message
             await message.channel.send(mytenorpy.search_tenor(message.content), reference=message)
+
+
+    async def check_serial(self):
+        while True:
+            if SERIAL.in_waiting:
+                line = SERIAL.readline().decode("utf-8").strip()
+                print(line)
+                if line == "tog":  
+                    if any([x.is_connected() for x in self.voice_clients]):
+                        voice = self.voice_clients[0]
+                        if voice.is_playing():
+                            voice.stop()
+                        await self.play_rsound(voice)
+            await asyncio.sleep(0.1)
 
 
     async def send_message(self, destination, message):
