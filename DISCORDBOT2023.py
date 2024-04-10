@@ -10,16 +10,16 @@ import serial
 import requests
 
 # Constants
-MIN_WAIT = 1000
-MAX_WAIT = 100000
+MIN_WAIT = config.MIN_WAIT
+MAX_WAIT = config.MAX_WAIT
 GUILD_ID = config.GUILD_ID
 GENERAL_CHANNEL_ID = config.GENERAL_CHANNEL_ID
-GAUSS_MEAN = 8000
-GAUSS_STD = 20000
-MESSAGE_LIMIT = None
-INTENTS = False
-MESSAGE_HISTORY = False
-MESSAGE_LOOP = False
+GAUSS_MEAN = config.GAUSS_MEAN
+GAUSS_STD = config.GAUSS_STD
+MESSAGE_LIMIT = config.MESSAGE_LIMIT
+INTENTS = config.INTENTS
+MESSAGE_HISTORY = config.MESSAGE_HISTORY
+MESSAGE_LOOP = config.MESSAGE_LOOP
 SERIAL = serial.Serial(config.COM_PORT, 9600, timeout=0)
 
 class MyClient(discord.Client):
@@ -42,7 +42,8 @@ class MyClient(discord.Client):
             self.myintents = myintents.MyIntents(self.msg_list)
             await self.get_intents()
             print("Intents initialized")
-        await client.change_presence(activity=discord.Streaming(name="Shark Tank", url="https://www.twitch.tv/gothamchess"))
+
+        await client.change_presence(activity=discord.Streaming(name="Shark Tank", url="https://www.youtube.com/channel/UCeXmrs3jE_egxgX35pqDyDg"))
         if MESSAGE_LOOP:
             self.msg_task = self.loop.create_task(self.msg_loop()) # start message loop
         client.loop.create_task(self.check_serial())
@@ -92,6 +93,7 @@ class MyClient(discord.Client):
             if not self.initialized:
                 return await message.channel.send("Hey guys, I won't be on. I feel like dogshit right now")
             
+            # remove mentions and @everyone from message
             parsed_message = message.content.replace("<@" + str(self.user.id) + ">", "").replace("@everyone", "").strip()
 
             if parsed_message.lower().startswith("pick"):
@@ -103,14 +105,12 @@ class MyClient(discord.Client):
                 if member_id.isdigit():    
                     member = self.guild.get_member(int(member_id))
                     if member:
-                        roles = random.sample(self.role_list, random.randint(1, 5))
+                        new_role = random.choice(self.role_list)
                         # remove previous roles
                         for role in member.roles:
                             if role.id in self.role_list:
                                 await member.remove_roles(role)
-
-                        for role in roles:
-                            await member.add_roles(self.guild.get_role(role))
+                        await member.add_roles(self.guild.get_role(new_role))
 
                         return await message.channel.send(f"{member.mention}, you're banned", reference=message)
             
@@ -150,10 +150,12 @@ class MyClient(discord.Client):
 
     async def check_serial(self):
         while True:
-            if SERIAL.in_waiting:
+            if SERIAL.in_waiting: # check for serial input
                 line = SERIAL.readline().decode("utf-8").strip()
                 print(line)
-                if line == "tog":  
+
+                if line == "tog":  # play random sound in voice channel, also using to reset presence
+                    await client.change_presence(activity=discord.Streaming(name="Shark Tank", url="https://www.youtube.com/channel/UCeXmrs3jE_egxgX35pqDyDg"))
                     if any([x.is_connected() for x in self.voice_clients]):
                         voice = self.voice_clients[0]
                         if voice.is_playing():
