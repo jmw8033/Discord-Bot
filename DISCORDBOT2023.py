@@ -96,6 +96,9 @@ class MyClient(discord.Client):
             # remove mentions and @everyone from message
             parsed_message = message.content.replace("<@" + str(self.user.id) + ">", "").replace("@everyone", "").strip()
 
+            if parsed_message.lower().endswith("yes or no"): # send a yes or no message
+                return await message.channel.send(random.choice(["Yes", "No"]), reference=message)
+
             if parsed_message.lower().startswith("pick"):
                 options = parsed_message.split(" ")[1:]
                 return await message.channel.send(random.choice(options), reference=message)
@@ -114,7 +117,7 @@ class MyClient(discord.Client):
 
                         return await message.channel.send(f"{member.mention}, you're banned", reference=message)
             
-            if message.content.lower().endswith(("join", "doors", "ben")): # join voice channel / play sound
+            if parsed_message.content.lower().endswith(("join", "doors", "ben")): # join voice channel / play sound
                 if not any([x.is_connected() for x in self.voice_clients]):
                     voice = await self.join_voice(message)
                     if not voice:
