@@ -97,7 +97,7 @@ class MyClient(discord.Client):
             parsed_message = message.content.replace("<@" + str(self.user.id) + ">", "").replace("@everyone", "").strip()
 
             if parsed_message.lower().endswith("yes or no"): # send a yes or no message
-                return await message.channel.send(random.choice(["Yes", "No"]), reference=message)
+                return await message.channel.send(random.choice(["yes", "no"]), reference=message)
 
             if parsed_message.lower().startswith("pick"):
                 options = parsed_message.split(" ")[1:]
