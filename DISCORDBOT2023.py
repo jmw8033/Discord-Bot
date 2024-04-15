@@ -117,7 +117,7 @@ class MyClient(discord.Client):
 
                         return await message.channel.send(f"{member.mention}, you're banned", reference=message)
             
-            if parsed_message.content.lower().endswith(("join", "doors", "ben")): # join voice channel / play sound
+            if message.content.lower().endswith(("join", "doors", "ben")): # join voice channel / play sound
                 if not any([x.is_connected() for x in self.voice_clients]):
                     voice = await self.join_voice(message)
                     if not voice:
