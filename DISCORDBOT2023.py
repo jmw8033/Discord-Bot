@@ -2,7 +2,7 @@ import discord
 import random
 import asyncio
 import datetime
-import mytenorpy 
+import mytenor 
 import myintents
 import config
 import os
@@ -106,7 +106,7 @@ class MyClient(discord.Client):
             await self.mention_handler(message)
 
         elif dice < 5: # chance to send a random message if not mentioned
-            await message.channel.send(mytenorpy.search_tenor(message.content), reference=message)
+            await message.channel.send(mytenor.search_tenor(message.content), reference=message)
 
 
     async def dm_handler(self, message): # Handle DMs from me
@@ -232,7 +232,7 @@ class MyClient(discord.Client):
             random_member = random.choice(self.guild.members)
             await channel.send(f"<@{random_member.id}> {self.rmessage}", reference=reference)
         elif counter % 5 == 0: # send tenor gif of random message
-            gif = mytenorpy.search_tenor(self.rmessage)
+            gif = mytenor.search_tenor(self.rmessage)
             if gif != None:
                 await channel.send(gif)
             else:
