@@ -7,7 +7,6 @@ import myintents
 import config
 import os
 import serial
-import requests
 
 # Constants
 MIN_WAIT = config.MIN_WAIT
@@ -21,6 +20,7 @@ INTENTS = config.INTENTS
 MESSAGE_HISTORY = config.MESSAGE_HISTORY
 MESSAGE_LOOP = config.MESSAGE_LOOP
 SERIAL = serial.Serial(config.COM_PORT, 9600, timeout=0)
+MY_ID = config.MY_ID
 
 class MyClient(discord.Client):
 
@@ -79,7 +79,7 @@ class MyClient(discord.Client):
             return
         
         # if message is a DM from me, the first word is the destination and the rest is the message
-        if isinstance(message.channel, discord.channel.DMChannel) and message.author.id == 188869711264481280:
+        if isinstance(message.channel, discord.channel.DMChannel) and message.author.id == config.MY_ID:
             message = message.content.split(" ")
             return await self.send_message(message[0], " ".join(message[1:]))
         
@@ -261,6 +261,23 @@ class MyClient(discord.Client):
             print(f"Waiting {time_to_wait} seconds (sound loop)")
             await self.play_rsound(voice)
             await asyncio.sleep(time_to_wait)
+
+
+    async def on_voice_state_update(self, member, before, after):
+        print(f"{member} moved from {before.channel} to {after.channel}")
+        if member == self.user:
+            return
+        if after.channel is None:
+            # if the bot is the only one in the voice channel, disconnect
+            voice = [x for x in self.voice_clients if x.channel == before.channel]
+            if voice and len(before.channel.members) == 1:
+                await voice[0].disconnect()
+                if self.sound_task is not None:
+                    self.sound_task.cancel()
+            return
+        if member.id == config.MY_ID:
+            voice = await after.channel.connect()
+            self.sound_task = self.loop.create_task(self.random_sound_loop(voice))
 
 
     @property
