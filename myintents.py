@@ -31,6 +31,6 @@ class MyIntents:
 
         weights = [i for i in range(len(closest_responses), 0, -1)]
         selected_response = random.choices(closest_responses, weights=weights)
-        if not selected_response:
+        if not selected_response[0] or len(selected_response[0]) == 0 or selected_response[0].isspace():
             return self.get_response(message)
         return selected_response[0]

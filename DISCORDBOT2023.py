@@ -69,8 +69,9 @@ class MyClient(discord.Client):
         print(f"{len(self.msg_list)} raw messages found, getting all messages...")
         for channel in self.guild.text_channels: # get list of all messages
             async for message in channel.history(limit=MESSAGE_LIMIT):
-                if message.content and message.author != self.user:
-                    self.msg_list.append(message.content)
+                parsed_message = message.content.replace("<@" + str(self.user.id) + ">", "")
+                if len(parsed_message) > 0 and not parsed_message.isspace() and message.author != self.user:
+                    self.msg_list.append(parsed_message)
         print(f"{len(self.msg_list)} total messages found")
 
 
@@ -93,8 +94,6 @@ class MyClient(discord.Client):
         if isinstance(message.channel, discord.channel.DMChannel) and message.author.id == config.MY_ID:
             await self.dm_handler(message)
         
-    
-        self.msg_list.append(message.content) 
         dice = random.randint(1, 100) # random number to determine action for send_rmessage
         reply_author = await self.get_reply_author(message)
 
@@ -175,12 +174,7 @@ class MyClient(discord.Client):
 
     async def intents_handler(self, message): # Handle responding with intents
         response = self.myintents.get_response(message)
-        try:
-            await message.channel.send(response, reference=message)
-        except discord.errors.HTTPException:
-            print("Message failed, trying again")
-            response = self.myintents.get_response(message)
-            await message.channel.send(response, reference=message)
+        await message.channel.send(response, reference=message)
 
 
     async def check_serial(self): # Check for serial input (tog)
