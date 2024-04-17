@@ -119,7 +119,7 @@ class MyClient(discord.Client):
     async def mention_handler(self, message): # Handle mentions of the bot
         parsed_message = message.content.replace("<@" + str(self.user.id) + ">", "").replace("@everyone", "").strip()
        
-        if parsed_message.lower().endswith("yes or no"): # send a yes or no message
+        if "yes or no" in parsed_message: # send a yes or no message
             return await message.channel.send(random.choice(["yes", "no"]), reference=message)
         
         if parsed_message.lower().startswith("pick"):
@@ -293,6 +293,8 @@ class MyClient(discord.Client):
         print(f"{member} moved from {before.channel} to {after.channel}")
         if member == self.user:
             return
+        if before.channel == after.channel:
+            return
         if after.channel is None:
             # if the bot is the only one in the voice channel, disconnect
             voice = [x for x in self.voice_clients if x.channel == before.channel]
@@ -302,6 +304,8 @@ class MyClient(discord.Client):
                     self.sound_task.cancel()
             return
         if member.id == config.MY_ID:
+            if any([x.is_connected() for x in self.voice_clients]):
+                return
             voice = await after.channel.connect()
             self.sound_task = self.loop.create_task(self.random_sound_loop(voice))
 
