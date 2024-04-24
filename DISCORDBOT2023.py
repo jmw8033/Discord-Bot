@@ -111,9 +111,17 @@ class MyClient(discord.Client):
 
     async def dm_handler(self, message): # Handle DMs from me
             message = message.content.split(" ")
-            if len(message) < 2 or not message[0].isdigit():
-                return
-            return await self.send_message(message[0], " ".join(message[1:]))
+            instruction = message[0].lower()
+            message = message[1:]
+            if instruction == "send": # send a message to a channel or user
+                if len(message) < 2 or not message[0].isdigit():
+                    return
+                return await self.send_message(message[0], " ".join(message[1:]))
+            
+            if instruction == "print":
+                if len(message) == 0:
+                    return
+                return print(vars(self).get(message[0], "Not found"))
 
 
     async def mention_handler(self, message): # Handle mentions of the bot
