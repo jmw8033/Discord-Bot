@@ -50,6 +50,7 @@ class MyClient(discord.Client):
 
         await client.change_presence(activity=discord.Game("I am coming"))  
         self.guild = self.get_guild(GUILD_ID) # get guild
+        self.me = self.guild.get_member(MY_ID) # get my member object (me not the bot)
         self.msg_list = [f"<@{member.id}>" for member in self.guild.members] # list of all messages, starts with mentions of all members
         self.role_list = [role.id for role in self.guild.roles][6:17] # list of roles to assign
         await self.initialize_msg_list()
@@ -62,6 +63,10 @@ class MyClient(discord.Client):
         client.loop.create_task(self.check_serial())
         await client.change_presence(activity=discord.Streaming(name="Woodchipper Simulator", url="https://www.twitch.tv/flats"))
         print("Done")
+
+        if self.me.voice:
+            voice = await self.me.voice.channel.connect()
+            self.sound_task = self.loop.create_task(self.random_sound_loop(voice))
 
 
     async def initialize_msg_list(self): # Get all messages from the guild, store in msg_list
@@ -306,6 +311,7 @@ class MyClient(discord.Client):
             return
         if before.channel == after.channel:
             return
+        
         if after.channel is None:
             # if the bot is the only one in the voice channel, disconnect
             voice = [x for x in self.voice_clients if x.channel == before.channel]
@@ -314,7 +320,8 @@ class MyClient(discord.Client):
                 if self.sound_task is not None:
                     self.sound_task.cancel()
             return
-        if member.id == MY_ID:
+        
+        if member == self.me:
             if any([x.is_connected() for x in self.voice_clients]):
                 return
             voice = await after.channel.connect()
