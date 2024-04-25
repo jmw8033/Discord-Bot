@@ -131,7 +131,7 @@ class MyClient(discord.Client):
                     return
                 return await self.send_message(message[0], " ".join(message[1:]))
             
-            if instruction == "print":
+            elif instruction == "print":
                 if len(message) == 0:
                     return
                 return print(vars(self).get(message[0], "Not found"))
@@ -143,17 +143,17 @@ class MyClient(discord.Client):
         if "yes or no" in parsed_message: # send a yes or no message
             return await message.channel.send(random.choice(["yes", "no"]), reference=message)
         
-        if parsed_message.lower().startswith("pick"):
+        elif parsed_message.lower().startswith("pick"):
             options = parsed_message.split(" ")[1:]
             return await message.channel.send(random.choice(options), reference=message)
         
-        if "ban" in message.content.lower():
+        elif "ban" in message.content.lower():
             await self.ban_handler(message)
 
-        if message.content.lower().endswith(("join", "doors", "ben")): # join voice channel / play sound
+        elif message.content.lower().endswith(("join", "doors", "ben")): # join voice channel / play sound
             await self.voice_chat_handler(message)
 
-        if INTENTS:
+        elif INTENTS:
             await self.intents_handler(message)
 
 
