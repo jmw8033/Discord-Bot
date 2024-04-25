@@ -52,7 +52,7 @@ class MyClient(discord.Client):
         self.guild = self.get_guild(GUILD_ID) # get guild
         self.me = self.guild.get_member(MY_ID) # get my member object (me not the bot)
         self.msg_list = [f"<@{member.id}>" for member in self.guild.members] # list of all messages, starts with mentions of all members
-        self.role_list = [role.id for role in self.guild.roles][6:17] # list of roles to assign
+        self.role_list = [role.id for role in self.guild.roles][6:-3] # list of roles to assign
         await self.initialize_msg_list()
         if INTENTS:
             await self.initialize_intents()
