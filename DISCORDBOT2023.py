@@ -9,18 +9,26 @@ import os
 import serial
 
 # Constants
-MIN_WAIT = config.MIN_WAIT
-MAX_WAIT = config.MAX_WAIT
+DISCORD_TOKEN = config.DISCORD_TOKEN
 GUILD_ID = config.GUILD_ID
 GENERAL_CHANNEL_ID = config.GENERAL_CHANNEL_ID
-GAUSS_MEAN = config.GAUSS_MEAN
-GAUSS_STD = config.GAUSS_STD
 MESSAGE_LIMIT = config.MESSAGE_LIMIT
 INTENTS = config.INTENTS
 MESSAGE_HISTORY = config.MESSAGE_HISTORY
 MESSAGE_LOOP = config.MESSAGE_LOOP
-SERIAL = serial.Serial(config.COM_PORT, 9600, timeout=0)
+SERIAL = serial.Serial(config.COM_PORT, baudrate=9600, timeout=0)
 MY_ID = config.MY_ID
+SOUND_DIR = config.SOUND_DIR
+SOUND_FILES = config.SOUND_FILES
+MSG_LOOP_MEAN = config.MSG_LOOP_MEAN
+MSG_LOOP_STD = config.MSG_LOOP_STD
+MSG_LOOP_MIN = config.MSG_LOOP_MIN
+MSG_LOOP_MAX = config.MSG_LOOP_MAX
+SOUND_LOOP_MEAN = config.SOUND_LOOP_MEAN
+SOUND_LOOP_STD = config.SOUND_LOOP_STD
+SOUND_LOOP_MIN = config.SOUND_LOOP_MIN
+SOUND_LOOP_MAX = config.SOUND_LOOP_MAX
+
 
 class MyClient(discord.Client):
     def __init__(self, *args, **kwargs): # Initialize variables
@@ -91,7 +99,7 @@ class MyClient(discord.Client):
             return
         
         # if message is a DM from me, the first word is the destination and the rest is the message
-        if isinstance(message.channel, discord.channel.DMChannel) and message.author.id == config.MY_ID:
+        if isinstance(message.channel, discord.channel.DMChannel) and message.author.id == MY_ID:
             await self.dm_handler(message)
         
         dice = random.randint(1, 100) # random number to determine action for send_rmessage
@@ -174,7 +182,7 @@ class MyClient(discord.Client):
             self.sound_task = self.loop.create_task(self.random_sound_loop(voice))
         
         if message.content.lower().endswith("doors"):
-            await self.play_sound(voice, f"{config.SOUND_DIR}/JEFF.mp3")
+            await self.play_sound(voice, f"{SOUND_DIR}/JEFF.mp3")
         
         if message.content.lower().endswith("ben"):
             await self.play_rsound(voice)
@@ -230,7 +238,7 @@ class MyClient(discord.Client):
         channel = self.get_channel(GENERAL_CHANNEL_ID) # general chat
         while not self.is_closed():
             self.start_wait_time = datetime.datetime.now()
-            time_to_sleep = await self.wait_random_time()
+            time_to_sleep = await self.wait_random_time(MSG_LOOP_MEAN, MSG_LOOP_STD, MSG_LOOP_MIN, MSG_LOOP_MAX)
             await asyncio.sleep(time_to_sleep)
             await self.send_rmessage(channel, counter) 
 
@@ -254,9 +262,9 @@ class MyClient(discord.Client):
         counter += 1
 
 
-    async def wait_random_time(self, gauss_mean=GAUSS_MEAN, gauss_std=GAUSS_STD, min_wait=MIN_WAIT, max_wait=MAX_WAIT): # Wait for a random time
+    async def wait_random_time(self, mean, std, min_wait, max_wait): # Wait for a random time
         # wait for a random time
-        self.time_to_wait = max(min(abs(random.gauss(gauss_mean, gauss_std)), max_wait), min_wait)
+        self.time_to_wait = max(min(abs(random.gauss(mean, std)), max_wait), min_wait)
         print(f"Waiting {self.time_to_wait} seconds")
         return self.time_to_wait
 
@@ -274,24 +282,19 @@ class MyClient(discord.Client):
 
 
     async def play_rsound(self, voice): # Play a random sound in the voice channel
-        values = [x for x, y in config.SOUND_FILES]
-        weights = [y for x, y in config.SOUND_FILES]
+        values = [x for x, y in SOUND_FILES]
+        weights = [y for x, y in SOUND_FILES]
         sound = random.choices(values, weights)[0]
         await self.play_sound(voice, sound)
 
 
     async def random_sound_loop(self, voice): # Loop to play random sounds in the voice channel
-        await asyncio.sleep(random.randint(1, 30))
         while True:
             if not voice.is_connected() and self.sound_task is not None:
                 self.sound_task.cancel()
                 return
-            if voice.is_connected() and len(voice.channel.members) == 1:
-                await voice.disconnect()
-                self.sound_task.cancel()
-                return
             
-            time_to_wait = await self.wait_random_time(100, 500, 10, 20000)
+            time_to_wait = await self.wait_random_time(SOUND_LOOP_MEAN, SOUND_LOOP_STD, SOUND_LOOP_MIN, SOUND_LOOP_MAX)
             print(f"Waiting {time_to_wait} seconds (sound loop)")
             await self.play_rsound(voice)
             await asyncio.sleep(time_to_wait)
@@ -311,7 +314,7 @@ class MyClient(discord.Client):
                 if self.sound_task is not None:
                     self.sound_task.cancel()
             return
-        if member.id == config.MY_ID:
+        if member.id == MY_ID:
             if any([x.is_connected() for x in self.voice_clients]):
                 return
             voice = await after.channel.connect()
@@ -338,4 +341,4 @@ if __name__ == "__main__":
     intents=discord.Intents.all()
     intents.message_content = True
     client = MyClient(intents=intents)
-    client.run(config.DISCORD_TOKEN)
+    client.run(DISCORD_TOKEN)
