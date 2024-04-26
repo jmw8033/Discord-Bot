@@ -159,7 +159,6 @@ class MyClient(discord.Client):
 
     async def ban_handler(self, message): # Remove all roles from members in message and assign a random role to each
         member_ids = message.content.lower().split(" ")[2:]
-        print(member_ids)
 
         for member_id in member_ids:
             member_id = member_id.replace("<", "").replace(">", "").replace("@", "").replace("!", "")
