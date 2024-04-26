@@ -157,9 +157,15 @@ class MyClient(discord.Client):
             await self.intents_handler(message)
 
 
-    async def ban_handler(self, message): # Remove all roles from a member and assign a random role
-        member_id = message.content.lower().split(" ")[-1].replace("<", "").replace(">", "").replace("@", "").replace("!", "")
-        if member_id.isdigit():    
+    async def ban_handler(self, message): # Remove all roles from members in message and assign a random role to each
+        member_ids = message.content.lower().split(" ")[2:]
+        print(member_ids)
+
+        for member_id in member_ids:
+            member_id = member_id.replace("<", "").replace(">", "").replace("@", "").replace("!", "")
+            if not member_id.isdigit():
+                continue
+
             member = self.guild.get_member(int(member_id))
             if member:
                 new_role = random.choice(self.role_list)
@@ -169,7 +175,8 @@ class MyClient(discord.Client):
                         await member.remove_roles(role)
                 await member.add_roles(self.guild.get_role(new_role))
 
-                return await message.channel.send(f"{member.mention}, you're banned", reference=message)
+                await message.channel.send(f"{member.mention}, you're banned", reference=message)
+                await asyncio.sleep(1) # sleep to avoid rate limit
 
 
     async def voice_chat_handler(self, message): # Handle voice chat commands
