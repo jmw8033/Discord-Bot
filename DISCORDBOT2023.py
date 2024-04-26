@@ -158,6 +158,7 @@ class MyClient(discord.Client):
 
 
     async def ban_handler(self, message): # Remove all roles from members in message and assign a random role to each
+        # occasionally gets missing permissions error when adding role, think its being rate limited
         member_ids = message.content.lower().split(" ")[2:]
 
         for member_id in member_ids:
@@ -172,7 +173,12 @@ class MyClient(discord.Client):
                 for role in member.roles:
                     if role.id in self.role_list:
                         await member.remove_roles(role)
-                await member.add_roles(self.guild.get_role(new_role))
+                try:
+                    await member.add_roles(self.guild.get_role(new_role))
+                except discord.errors.Forbidden:
+                    # wait a second and try again if rate limited
+                    await asyncio.sleep(1)
+                    await member.add_roles(self.guild.get_role(new_role))
 
                 await message.channel.send(f"{member.mention}, you're banned", reference=message)
                 await asyncio.sleep(1) # sleep to avoid rate limit
