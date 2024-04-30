@@ -282,7 +282,8 @@ class MyClient(discord.Client):
     async def wait_random_time(self, mean, std, min_wait, max_wait): # Wait for a random time
         # wait for a random time
         self.time_to_wait = max(min(abs(random.gauss(mean, std)), max_wait), min_wait)
-        print(f"Waiting {self.time_to_wait} seconds")
+        # round to nearest second and print minutes
+        print(f"Waiting {round(self.time_to_wait)} seconds or {round(self.time_to_wait / 60, 2)} minutes")
         return self.time_to_wait
 
 
@@ -324,15 +325,15 @@ class MyClient(discord.Client):
         if before.channel == after.channel:
             return
         
-        if after.channel is None:
-            # if the bot is the only one in the voice channel, disconnect
-            voice = [x for x in self.voice_clients if x.channel == before.channel]
-            if voice and len(before.channel.members) == 1:
-                await voice[0].disconnect()
-                if self.sound_task is not None:
-                    self.sound_task.cancel()
+        # if the bot is the only one in the voice channel, disconnect
+        voice = [x for x in self.voice_clients if x.channel == before.channel]
+        if voice and len(before.channel.members) == 1:
+            await voice[0].disconnect()
+            if self.sound_task is not None:
+                self.sound_task.cancel()
             return
         
+    
         if member == self.me:
             if any([x.is_connected() for x in self.voice_clients]):
                 return
