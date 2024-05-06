@@ -7,6 +7,7 @@ import myintents
 import config
 import os
 import serial
+from pyt2s.services import stream_elements
 
 # Constants
 DISCORD_TOKEN = config.DISCORD_TOKEN
@@ -16,7 +17,6 @@ MESSAGE_LIMIT = config.MESSAGE_LIMIT
 INTENTS = config.INTENTS
 MESSAGE_HISTORY = config.MESSAGE_HISTORY
 MESSAGE_LOOP = config.MESSAGE_LOOP
-SERIAL = serial.Serial(config.COM_PORT, baudrate=9600, timeout=0)
 MY_ID = config.MY_ID
 SOUND_DIR = config.SOUND_DIR
 SOUND_FILES = config.SOUND_FILES
@@ -28,6 +28,10 @@ SOUND_LOOP_MEAN = config.SOUND_LOOP_MEAN
 SOUND_LOOP_STD = config.SOUND_LOOP_STD
 SOUND_LOOP_MIN = config.SOUND_LOOP_MIN
 SOUND_LOOP_MAX = config.SOUND_LOOP_MAX
+try:
+    SERIAL = serial.Serial(config.COM_PORT, baudrate=9600, timeout=0)
+except serial.SerialException:
+    SERIAL = None
 
 
 class MyClient(discord.Client):
@@ -96,7 +100,7 @@ class MyClient(discord.Client):
 
 
     async def on_message(self, message): # Called when a message is sent in a channel the bot is in
-        print(f'{message.channel}: {message.author}: {message.content}')
+        print(f"{message.channel}: {message.author}: {message.content}")
         if not self.msg_list or message.author == self.user: # ignore messages until msg_list is initialized or if the message is from the bot
             return
         
@@ -104,8 +108,8 @@ class MyClient(discord.Client):
             return
         
         # if message is a DM from me, the first word is the destination and the rest is the message
-        if isinstance(message.channel, discord.channel.DMChannel) and message.author.id == MY_ID:
-            await self.dm_handler(message)
+        if isinstance(message.channel, discord.channel.DMChannel):
+            return await self.dm_handler(message)
         
         dice = random.randint(1, 100) # random number to determine action for send_rmessage
         reply_author = await self.get_reply_author(message)
@@ -116,26 +120,52 @@ class MyClient(discord.Client):
                 return await message.channel.send("Hey guys, I won't be on. I feel like dogshit right now")
             
             # handle mentions
-            await self.mention_handler(message)
+            return await self.mention_handler(message)
 
         elif dice < 5: # chance to send a random message if not mentioned
-            await message.channel.send(mytenor.search_tenor(message.content), reference=message)
+            return await message.channel.send(mytenor.search_tenor(message.content), reference=message)
 
 
     async def dm_handler(self, message): # Handle DMs from me
-            message = message.content.split(" ")
-            instruction = message[0].lower()
-            message = message[1:]
-            if instruction == "send": # send a message to a channel or user
-                if len(message) < 2 or not message[0].isdigit():
-                    return
-                return await self.send_message(message[0], " ".join(message[1:]))
-            
-            elif instruction == "print":
-                if len(message) == 0:
-                    return
-                return print(vars(self).get(message[0], "Not found"))
+        msg = message.content.split(" ")
+        instruction = msg[0].lower()
+        msg = msg[1:]
 
+        # special commands for me
+        if message.author.id == MY_ID: 
+            if instruction == "send": # send a message to a channel or user
+                if len(msg) < 2 or not msg[0].isdigit():
+                    return
+                return await self.send_message(msg[0], " ".join(msg[1:]))
+            
+            elif instruction == "print": # print a variable
+                if len(msg) == 0:
+                    return
+                return print(vars(self).get(msg[0], "Not found"))
+             
+        # special commands for everyone
+        if instruction == "tts": # send a TTS message to the voice channel
+            if len(msg) == 0:
+                return
+            return await self.tts_handler(" ".join(msg))
+                
+
+    async def tts_handler(self, text, voice="Brian"): # Handle TTS messages
+        def delete_tts(error): # Delete the tts file after playing
+            if error:
+                print(error)
+            if os.path.exists("tts.mp3"):
+                os.remove("tts.mp3")
+
+        tts = stream_elements.StreamElements().requestTTS(text, voice=voice)
+        with open("tts.mp3", "+wb") as file:
+            file.write(tts)
+        if any([x.is_connected() for x in self.voice_clients]):
+            voice = self.voice_clients[0]
+            if voice.is_playing():
+                voice.stop()
+            await self.play_sound(voice, "tts.mp3", after=delete_tts)
+ 
 
     async def mention_handler(self, message): # Handle mentions of the bot
         parsed_message = message.content.replace("<@" + str(self.user.id) + ">", "").replace("@everyone", "").strip()
@@ -211,19 +241,22 @@ class MyClient(discord.Client):
 
 
     async def check_serial(self): # Check for serial input (tog)
-        while True:
-            if SERIAL.in_waiting: # check for serial input
-                line = SERIAL.readline().decode("utf-8").strip()
-                print(line)
+        while SERIAL:
+            try:
+                if SERIAL.in_waiting: # check for serial input
+                    line = SERIAL.readline().decode("utf-8").strip()
+                    print(line)
 
-                if line == "tog":  # play random sound in voice channel, also using to reset presence
-                    await client.change_presence(activity=discord.Streaming(name="Woodchipper Simulator", url="https://www.twitch.tv/flats"))
-                    if any([x.is_connected() for x in self.voice_clients]):
-                        voice = self.voice_clients[0]
-                        if voice.is_playing():
-                            voice.stop()
-                        await self.play_rsound(voice)
-            await asyncio.sleep(0.1)
+                    if line == "tog":  # play random sound in voice channel, also using to reset presence
+                        await client.change_presence(activity=discord.Streaming(name="Woodchipper Simulator", url="https://www.twitch.tv/flats"))
+                        if any([x.is_connected() for x in self.voice_clients]):
+                            voice = self.voice_clients[0]
+                            if voice.is_playing():
+                                voice.stop()
+                            await self.play_rsound(voice)
+                await asyncio.sleep(0.25)
+            except serial.SerialException:
+                return
 
 
     async def send_message(self, destination, message): # Send a message to a channel or user
@@ -245,8 +278,64 @@ class MyClient(discord.Client):
 
 
     async def get_intents(self): # Get intents from myintents.py
-        # creates Intents object using myintents.py using loop.run_in_executor to avoid blocking
-        await self.loop.run_in_executor(None, self.myintents.get_intents)
+        await self.loop.run_in_executor(None, self.myintents.get_intents) # creates Intents object using myintents.py using loop.run_in_executor to avoid blocking
+
+
+    async def send_rmessage(self, channel, counter=0, reference=None): # Send a random message
+        if counter % 3 == 0: # mention a random member
+            random_member = random.choice(self.guild.members)
+            await channel.send(f"<@{random_member.id}> {self.rmessage}", reference=reference)
+       
+        elif counter % 5 == 0: # send tenor gif of random message
+            gif = mytenor.search_tenor(self.rmessage)
+            if gif != None:
+                await channel.send(gif)
+            else:
+                print("Tenor failed")
+        
+        else: # send random message
+            try:
+                message = self.rmessage
+                await channel.send(message, reference=reference)
+                # if in a voice channel, play tts of message
+                if any([x.is_connected() for x in self.voice_clients]):
+                    voice = self.voice_clients[0]
+                    if voice.is_playing():
+                        voice.stop()
+                    await self.tts_handler(self.rmessage)
+            
+            except discord.errors.HTTPException:
+                print("Message failed, trying again")
+                self.send_rmessage(channel, counter, reference)
+
+        counter += 1
+
+
+    async def wait_random_time(self, mean, std, min_wait, max_wait): # Wait for a random time
+        self.time_to_wait = max(min(abs(random.gauss(mean, std)), max_wait), min_wait)
+        print(f"Waiting {round(self.time_to_wait)} seconds or {round(self.time_to_wait / 60, 2)} minutes")
+        return self.time_to_wait
+
+
+    async def get_reply_author(self, message): # Get the author of the message being replied to
+        if message.reference is not None:
+            reply = await message.channel.fetch_message(message.reference.message_id)
+            return reply.author
+        return None        
+
+
+    async def play_sound(self, voice, sound, after=None): # Play a sound in the voice channel
+        if not voice.is_connected():
+            return
+        voice.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source=sound), after=after)
+        print(f"Playing {sound}")
+
+
+    async def play_rsound(self, voice): # Play a random sound in the voice channel
+        values = [x for x, y in SOUND_FILES]
+        weights = [y for x, y in SOUND_FILES]
+        sound = random.choices(values, weights)[0]
+        await self.play_sound(voice, sound)
 
 
     async def msg_loop(self): # Message loop
@@ -256,54 +345,9 @@ class MyClient(discord.Client):
         while not self.is_closed():
             self.start_wait_time = datetime.datetime.now()
             time_to_sleep = await self.wait_random_time(MSG_LOOP_MEAN, MSG_LOOP_STD, MSG_LOOP_MIN, MSG_LOOP_MAX)
+            print(f"Waiting {time_to_sleep} seconds (msg loop)")
             await asyncio.sleep(time_to_sleep)
             await self.send_rmessage(channel, counter) 
-
-
-    async def send_rmessage(self, channel, counter=0, reference=None): # Send a random message
-        if counter % 3 == 0: # mention a random member
-            random_member = random.choice(self.guild.members)
-            await channel.send(f"<@{random_member.id}> {self.rmessage}", reference=reference)
-        elif counter % 5 == 0: # send tenor gif of random message
-            gif = mytenor.search_tenor(self.rmessage)
-            if gif != None:
-                await channel.send(gif)
-            else:
-                print("Tenor failed")
-        else: # send random message
-            try:
-                await channel.send(self.rmessage, reference=reference)
-            except discord.errors.HTTPException:
-                print("Message failed, trying again")
-                self.send_rmessage(channel, counter, reference)
-        counter += 1
-
-
-    async def wait_random_time(self, mean, std, min_wait, max_wait): # Wait for a random time
-        # wait for a random time
-        self.time_to_wait = max(min(abs(random.gauss(mean, std)), max_wait), min_wait)
-        # round to nearest second and print minutes
-        print(f"Waiting {round(self.time_to_wait)} seconds or {round(self.time_to_wait / 60, 2)} minutes")
-        return self.time_to_wait
-
-
-    async def get_reply_author(self, message): # Get the author of the message being replied to
-        return None if message.reference is None or client.get_channel(message.reference.channel_id) is None  \
-                    else (await client.get_channel(message.reference.channel_id).fetch_message(message.reference.message_id)).author
-
-
-    async def play_sound(self, voice, sound): # Play a sound in the voice channel
-        if not voice.is_connected():
-            return
-        voice.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source=sound))
-        print(f"Playing {sound}")
-
-
-    async def play_rsound(self, voice): # Play a random sound in the voice channel
-        values = [x for x, y in SOUND_FILES]
-        weights = [y for x, y in SOUND_FILES]
-        sound = random.choices(values, weights)[0]
-        await self.play_sound(voice, sound)
 
 
     async def random_sound_loop(self, voice): # Loop to play random sounds in the voice channel
@@ -333,7 +377,6 @@ class MyClient(discord.Client):
                 self.sound_task.cancel()
             return
         
-    
         if member == self.me:
             if any([x.is_connected() for x in self.voice_clients]):
                 return
@@ -345,9 +388,9 @@ class MyClient(discord.Client):
     def rmessage(self): # Get a random message from msg_list
         while True:
             message = random.choice(self.msg_list)
-            if message != None:
+            if message != None and len(message) > 0 and not message.isspace():
                 return message
-            
+                 
 
     @property 
     def time_left(self): # Get the time left until the next message
