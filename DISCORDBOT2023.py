@@ -41,8 +41,8 @@ class MyClient(discord.Client):
         self.msg_list = []
         self.role_list = []
         self.initialized = False
-        self.start_wait_time = None
-        self.time_to_wait = None
+        self.msg_loop_start_wait_time = None
+        self.msg_loop_time_to_wait = None
         self.sound_task = None
         self.msg_task = None
         self.myintents = None
@@ -67,10 +67,6 @@ class MyClient(discord.Client):
         client.loop.create_task(self.check_serial())
         await client.change_presence(activity=discord.Streaming(name="Woodchipper Simulator", url="https://www.twitch.tv/flats"))
         print("Done")
-
-        if self.me.voice:
-            voice = await self.me.voice.channel.connect()
-            self.sound_task = self.loop.create_task(self.random_sound_loop(voice))
 
 
     async def initialize_msg_list(self): # Get all messages from the guild, store in msg_list
@@ -312,9 +308,7 @@ class MyClient(discord.Client):
 
 
     async def wait_random_time(self, mean, std, min_wait, max_wait): # Wait for a random time
-        self.time_to_wait = max(min(abs(random.gauss(mean, std)), max_wait), min_wait)
-        print(f"Waiting {round(self.time_to_wait)} seconds or {round(self.time_to_wait / 60, 2)} minutes")
-        return self.time_to_wait
+        return max(min(abs(random.gauss(mean, std)), max_wait), min_wait)
 
 
     async def get_reply_author(self, message): # Get the author of the message being replied to
@@ -343,10 +337,10 @@ class MyClient(discord.Client):
         counter = random.randint(1, 100)
         channel = self.get_channel(GENERAL_CHANNEL_ID) # general chat
         while not self.is_closed():
-            self.start_wait_time = datetime.datetime.now()
-            time_to_sleep = await self.wait_random_time(MSG_LOOP_MEAN, MSG_LOOP_STD, MSG_LOOP_MIN, MSG_LOOP_MAX)
-            print(f"Waiting {time_to_sleep} seconds (msg loop)")
-            await asyncio.sleep(time_to_sleep)
+            self.msg_loop_start_wait_time = datetime.datetime.now()
+            self.msg_loop_time_to_wait = await self.wait_random_time(MSG_LOOP_MEAN, MSG_LOOP_STD, MSG_LOOP_MIN, MSG_LOOP_MAX)
+            print(f"Waiting {round(self.msg_loop_time_to_wait)} seconds or {round(self.msg_loop_time_to_wait / 60, 2)} minutes (msg loop)")
+            await asyncio.sleep(self.msg_loop_time_to_wait)
             await self.send_rmessage(channel, counter) 
 
 
@@ -357,7 +351,7 @@ class MyClient(discord.Client):
                 return
             
             time_to_wait = await self.wait_random_time(SOUND_LOOP_MEAN, SOUND_LOOP_STD, SOUND_LOOP_MIN, SOUND_LOOP_MAX)
-            print(f"Waiting {time_to_wait} seconds (sound loop)")
+            print(f"Waiting {round(time_to_wait)} seconds or {round(time_to_wait / 60, 2)} minutes (sound loop)")
             await self.play_rsound(voice)
             await asyncio.sleep(time_to_wait)
 
@@ -376,13 +370,13 @@ class MyClient(discord.Client):
             if self.sound_task is not None:
                 self.sound_task.cancel()
             return
-        
+        # if I join, join 
         if member == self.me:
             if any([x.is_connected() for x in self.voice_clients]):
                 return
             voice = await after.channel.connect()
             self.sound_task = self.loop.create_task(self.random_sound_loop(voice))
-
+        
 
     @property
     def rmessage(self): # Get a random message from msg_list
@@ -394,13 +388,14 @@ class MyClient(discord.Client):
 
     @property 
     def time_left(self): # Get the time left until the next message
-        if self.start_wait_time is None or self.time_to_wait is None:
+        if self.msg_loop_start_wait_time is None or self.msg_loop_time_to_wait is None:
             return 0
         else:
-            return round((self.time_to_wait - (datetime.datetime.now() - self.start_wait_time).total_seconds()) / 60)
+            return round((self.msg_loop_time_to_wait - (datetime.datetime.now() - self.msg_loop_start_wait_time).total_seconds()) / 60)
 
 
 if __name__ == "__main__":
+
     intents=discord.Intents.all()
     intents.message_content = True
     client = MyClient(intents=intents)
