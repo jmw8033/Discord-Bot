@@ -339,7 +339,7 @@ class MyClient(discord.Client):
         while not self.is_closed():
             self.msg_loop_start_wait_time = datetime.datetime.now()
             self.msg_loop_time_to_wait = await self.wait_random_time(MSG_LOOP_MEAN, MSG_LOOP_STD, MSG_LOOP_MIN, MSG_LOOP_MAX)
-            print(f"Waiting {round(self.msg_loop_time_to_wait)}s \ {round(self.msg_loop_time_to_wait / 60, 2)}m \ {round(self.msg_loop_time_to_wait / 3600, 2)}h (msg loop)")
+            print(f"Waiting {round(self.msg_loop_time_to_wait / 3600, 2)}h (msg loop)")
             await asyncio.sleep(self.msg_loop_time_to_wait)
             await self.send_rmessage(channel, counter) 
 
@@ -351,7 +351,7 @@ class MyClient(discord.Client):
                 return
             
             time_to_wait = await self.wait_random_time(SOUND_LOOP_MEAN, SOUND_LOOP_STD, SOUND_LOOP_MIN, SOUND_LOOP_MAX)
-            print(f"Waiting {round(time_to_wait)}s \ {round(time_to_wait / 60, 2)}m \ {round(time_to_wait / 3600, 2)}h (sound loop)")
+            print(f"Waiting {round(time_to_wait / 3600, 2)}h (sound loop)")
             await self.play_rsound(voice)
             await asyncio.sleep(time_to_wait)
 
