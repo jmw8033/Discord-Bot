@@ -130,7 +130,7 @@ class MyClient(discord.Client):
         # special commands for me
         if message.author.id == MY_ID: 
             if instruction == "send": # send a message to a channel or user
-                if len(msg) < 2 or not msg[0].isdigit():
+                if len(msg) < 2 or (msg[0].lower() != "server" and not msg[0].isdigit()):
                     return
                 return await self.send_message(msg[0], " ".join(msg[1:]))
             
@@ -205,7 +205,9 @@ class MyClient(discord.Client):
                     # wait a second and try again if rate limited
                     await asyncio.sleep(1)
                     await member.add_roles(self.guild.get_role(new_role))
-
+                
+                await message.channel.trigger_typing()
+                await asyncio.sleep(3)
                 await message.channel.send(f"{member.mention}, you're banned", reference=message)
                 await asyncio.sleep(1) # sleep to avoid rate limit
 
@@ -233,6 +235,8 @@ class MyClient(discord.Client):
 
     async def intents_handler(self, message): # Handle responding with intents
         response = self.myintents.get_response(message)
+        await message.channel.trigger_typing()
+        await asyncio.sleep(3)
         await message.channel.send(response, reference=message)
 
 
@@ -259,10 +263,12 @@ class MyClient(discord.Client):
         if destination == "server":
             destination = self.get_channel(GENERAL_CHANNEL_ID)
         else:
-            destination = self.get_user(int(destination))
+            destination = await self.get_user(int(destination)).create_dm() # get DM channel
 
         if destination is None or message is None:
             return
+        await destination.typing()
+        await asyncio.sleep(3)
         await destination.send(message)
 
 
@@ -278,34 +284,36 @@ class MyClient(discord.Client):
 
 
     async def send_rmessage(self, channel, counter=0, reference=None): # Send a random message
+        message = None
         if counter % 3 == 0: # mention a random member
             random_member = random.choice(self.guild.members)
-            await channel.send(f"<@{random_member.id}> {self.rmessage}", reference=reference)
+            message = f"<@{random_member.id}> {self.rmessage}"
        
         elif counter % 5 == 0: # send tenor gif of random message
-            gif = mytenor.search_tenor(self.rmessage)
-            if gif != None:
-                await channel.send(gif)
-            else:
-                print("Tenor failed")
+            message = mytenor.search_tenor(self.rmessage)
+            if message == None:
+                print("Tenor search failed")
+                return
         
         else: # send random message
             try:
                 message = self.rmessage
-                await channel.send(message, reference=reference)
                 # if in a voice channel, play tts of message
                 if any([x.is_connected() for x in self.voice_clients]):
                     voice = self.voice_clients[0]
                     if voice.is_playing():
                         voice.stop()
-                    await self.tts_handler(self.rmessage)
+                    await self.tts_handler(message)
             
             except discord.errors.HTTPException:
                 print("Message failed, trying again")
                 self.send_rmessage(channel, counter, reference)
 
         counter += 1
-
+        await channel.trigger_typing()
+        await asyncio.sleep(3)
+        await channel.send(message, reference=reference)
+        
 
     async def wait_random_time(self, mean, std, min_wait, max_wait): # Wait for a random time
         return max(min(abs(random.gauss(mean, std)), max_wait), min_wait)
@@ -371,12 +379,15 @@ class MyClient(discord.Client):
                 self.sound_task.cancel()
             return
         # if I join, join 
-        if member == self.me and after.channel is not None:
-            if any([x.is_connected() for x in self.voice_clients]):
-                return
-            voice = await after.channel.connect()
-            self.sound_task = self.loop.create_task(self.random_sound_loop(voice))
-        
+        if member == self.me:
+            if after.channel is not None:
+                if any([x.is_connected() for x in self.voice_clients]):
+                    return
+                voice = await after.channel.connect()
+                self.sound_task = self.loop.create_task(self.random_sound_loop(voice))
+            else:
+                await voice[0].disconnect()
+
 
     @property
     def rmessage(self): # Get a random message from msg_list
@@ -395,7 +406,6 @@ class MyClient(discord.Client):
 
 
 if __name__ == "__main__":
-
     intents=discord.Intents.all()
     intents.message_content = True
     client = MyClient(intents=intents)
