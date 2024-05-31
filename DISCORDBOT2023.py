@@ -378,7 +378,8 @@ class MyClient(discord.Client):
             if self.sound_task is not None:
                 self.sound_task.cancel()
             return
-        # if I join, join 
+        
+        # if I join, join, if I leave, leave
         if member == self.me:
             if after.channel is not None:
                 if any([x.is_connected() for x in self.voice_clients]):
@@ -386,7 +387,10 @@ class MyClient(discord.Client):
                 voice = await after.channel.connect()
                 self.sound_task = self.loop.create_task(self.random_sound_loop(voice))
             else:
-                await voice[0].disconnect()
+                if voice:
+                    await voice[0].disconnect()
+                    if self.sound_task is not None:
+                        self.sound_task.cancel()
 
 
     @property
