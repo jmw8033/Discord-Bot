@@ -206,7 +206,7 @@ class MyClient(discord.Client):
                     await asyncio.sleep(1)
                     await member.add_roles(self.guild.get_role(new_role))
                 
-                await message.channel.trigger_typing()
+                await message.channel.typing()
                 await asyncio.sleep(3)
                 await message.channel.send(f"{member.mention}, you're banned", reference=message)
                 await asyncio.sleep(1) # sleep to avoid rate limit
@@ -235,7 +235,7 @@ class MyClient(discord.Client):
 
     async def intents_handler(self, message): # Handle responding with intents
         response = self.myintents.get_response(message)
-        await message.channel.trigger_typing()
+        await message.channel.typing()
         await asyncio.sleep(3)
         await message.channel.send(response, reference=message)
 
@@ -310,7 +310,7 @@ class MyClient(discord.Client):
                 self.send_rmessage(channel, counter, reference)
 
         counter += 1
-        await channel.trigger_typing()
+        await channel.typing()
         await asyncio.sleep(3)
         await channel.send(message, reference=reference)
         
