@@ -7,6 +7,7 @@ import myintents
 import config
 import os
 import serial
+from discord import AuditLogAction
 from pyt2s.services import stream_elements
 
 # Constants
@@ -367,6 +368,10 @@ class MyClient(discord.Client):
     async def on_voice_state_update(self, member, before, after): # Called when a member joins or leaves a voice channel
         print(f"{member} moved from {before.channel} to {after.channel}")
         if member == self.user:
+            if before.channel is not None and after.channel is None:
+                async for entry in member.guild.audit_logs(action=AuditLogAction.member_disconnect):
+                    await entry.user.move_to(None)
+                    break
             return
         if before.channel == after.channel:
             return
