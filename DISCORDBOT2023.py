@@ -317,7 +317,7 @@ class MyClient(discord.Client):
         
 
     async def wait_random_time(self, mean, std, min_wait, max_wait): # Wait for a random time
-        return max(min(abs(random.gauss(mean, std)), max_wait), min_wait)
+        return max(min(abs(random.gauss(mean, std)), min_wait), max_wait)
 
 
     async def get_reply_author(self, message): # Get the author of the message being replied to
