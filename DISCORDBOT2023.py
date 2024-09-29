@@ -177,7 +177,7 @@ class MyClient(discord.Client):
         elif "ban" in message.content.lower():
             await self.ban_handler(message)
 
-        elif message.content.lower().endswith(("join", "doors", "ben")): # join voice channel / play sound
+        elif message.content.lower().endswith(("join", "doors", "ben", "deliver us")): # join voice channel / play sound
             await self.voice_chat_handler(message)
 
         elif INTENTS:
@@ -232,6 +232,9 @@ class MyClient(discord.Client):
         
         if message.content.lower().endswith("ben"):
             await self.play_rsound(voice)
+
+        if message.content.lower().endswith("deliver us"):
+            await self.play_sound(voice, f"{SOUND_DIR}/deliver_us.mp3")
 
 
     async def intents_handler(self, message): # Handle responding with intents
@@ -328,6 +331,7 @@ class MyClient(discord.Client):
 
 
     async def play_sound(self, voice, sound, after=None): # Play a sound in the voice channel
+        print("hi")
         if not voice.is_connected():
             return
         voice.play(discord.FFmpegPCMAudio(executable="C:/ffmpeg/bin/ffmpeg.exe", source=sound), after=after)

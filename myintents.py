@@ -13,7 +13,7 @@ class MyIntents:
 
         # Mini-Batch K-Means Clustering
         n_clusters = 200
-        self.model = KMeans(n_clusters=n_clusters, n_init=20, max_iter=1000)
+        self.model = KMeans(n_clusters=n_clusters, n_init=20, max_iter=1000, random_state=42)
         self.model.fit(X)
 
         # Create clusters dictionary
