@@ -47,6 +47,8 @@ class MyClient(discord.Client):
         self.sound_task = None
         self.msg_task = None
         self.myintents = None
+        self.reaction_alphabet = [chr(x) for x in range(127462, 127462 + 26)]
+        self.quote_of_the_month_msg = None
 
 
     async def on_ready(self): # Called when the bot is logged in, initializes variables
@@ -102,7 +104,7 @@ class MyClient(discord.Client):
             return
         
         if message.channel.id == 1118732808752484402: # quotes channel
-            return
+            return await self.reactions_handler(message)
         
         # if message is a DM from me, the first word is the destination and the rest is the message
         if isinstance(message.channel, discord.channel.DMChannel):
@@ -183,6 +185,19 @@ class MyClient(discord.Client):
         elif INTENTS:
             await self.intents_handler(message)
 
+
+    async def reactions_handler(self, message): # Handle adding reactions in the quotes channel
+        if message.author.id != MY_ID: # only I can add reactions
+            return
+        if "ITS TIME TO VOTE" in message.content: # set the quote of the month message
+            self.quote_of_the_month_msg = message
+        if message.content.startswith("add"): # add reactions to the quote of the month message, ex. add 3 will add A B C
+            msg = message.content.split(" ")
+            if len(msg) > 1 and msg[1].isdigit() and int(msg[1]) < 27 and self.quote_of_the_month_msg is not None:
+                for i in range(1, int(msg[1]) + 1):
+                    await self.quote_of_the_month_msg.add_reaction(self.reaction_alphabet[i - 1])
+                await message.delete()
+            
 
     async def ban_handler(self, message): # Remove all roles from members in message and assign a random role to each
         # occasionally gets missing permissions error when adding role, think its being rate limited
