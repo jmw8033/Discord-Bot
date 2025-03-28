@@ -16,6 +16,7 @@ GUILD_ID = config.GUILD_ID
 GENERAL_CHANNEL_ID = config.GENERAL_CHANNEL_ID
 MESSAGE_LIMIT = config.MESSAGE_LIMIT
 INTENTS = config.INTENTS
+RAW_MESSAGE_HISTORY = config.RAW_MESSAGE_HISTORY
 MESSAGE_HISTORY = config.MESSAGE_HISTORY
 MESSAGE_LOOP = config.MESSAGE_LOOP
 MY_ID = config.MY_ID
@@ -29,9 +30,10 @@ SOUND_LOOP_MEAN = config.SOUND_LOOP_MEAN
 SOUND_LOOP_STD = config.SOUND_LOOP_STD
 SOUND_LOOP_MIN = config.SOUND_LOOP_MIN
 SOUND_LOOP_MAX = config.SOUND_LOOP_MAX
+
 try:
     SERIAL = serial.Serial(config.COM_PORT, baudrate=9600, timeout=0)
-except serial.SerialException:
+except:
     SERIAL = None
 
 
@@ -74,9 +76,10 @@ class MyClient(discord.Client):
 
     async def initialize_msg_list(self): # Get all messages from the guild, store in msg_list
         print("Getting messages...")
-        with open(os.path.join(os.path.dirname(__file__), "RawMessages.txt"), encoding="utf-8") as f:
-            for line in f:
-                self.msg_list.append(line)
+        if RAW_MESSAGE_HISTORY: # get messages from RawMessages.txt
+            with open(os.path.join(os.path.dirname(__file__), "RawMessages.txt"), encoding="utf-8") as f:
+                for line in f:
+                    self.msg_list.append(line)
 
         if not MESSAGE_HISTORY:
             print(f"{len(self.msg_list)} total messages found (raw)")
