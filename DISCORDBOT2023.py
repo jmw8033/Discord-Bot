@@ -104,7 +104,7 @@ class MyClient(discord.Client):
                     self.message_list.append(parsed_message)
 
         # save messages to text file in ChatLogs
-        with open(f"{CHAT_LOG_DIR}/ChatLogs.txt", "w") as file:
+        with open(f"{CHAT_LOG_DIR}/ChatLogs.txt", "w", encoding="utf-8") as file:
             for message in self.message_list:
                 file.write(message + "\n")
             print(f"{len(self.message_list)} total messages found, saved to {CHAT_LOG_DIR}/ChatLogs.txt")
