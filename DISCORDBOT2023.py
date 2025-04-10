@@ -22,6 +22,7 @@ DISCORD_TOKEN = config.DISCORD_TOKEN
 GUILD_ID = config.GUILD_ID
 GENERAL_CHANNEL_ID = config.GENERAL_CHANNEL_ID
 MY_ID = config.MY_ID
+COM_PORT = config.COM_PORT
 
 CHAT_LOG_DIR = config.CHAT_LOG_DIR
 RAW_MESSAGE_DIR = config.RAW_MESSAGE_DIR
@@ -37,7 +38,7 @@ SOUND_LOOP_MIN = config.SOUND_LOOP_MIN
 SOUND_LOOP_MAX = config.SOUND_LOOP_MAX
 
 try:
-    SERIAL = serial.Serial(config.COM_PORT, baudrate=9600, timeout=0)
+    SERIAL = serial.Serial(COM_PORT, baudrate=9600, timeout=0)
 except:
     SERIAL = None
 
@@ -141,7 +142,9 @@ class MyClient(discord.Client):
             return await self.mention_handler(message)
 
         elif dice < 5: # chance to send a random message if not mentioned
-            return await message.channel.send(mytenor.search_tenor(message.content), reference=message)
+            tenor_message = mytenor.search_tenor(message.content)
+            if tenor_message != None:
+                return await message.channel.send(tenor_message, reference=message)
 
 
     async def dm_handler(self, message): # Handle DMs from me
