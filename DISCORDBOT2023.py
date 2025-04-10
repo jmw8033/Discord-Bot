@@ -215,7 +215,7 @@ class MyClient(discord.Client):
             self.quote_of_the_month_message = message
         if message.content.startswith("add"): # add reactions to the quote of the month message, ex. add 3 will add A B C
             message = message.content.split(" ")
-            if len(message) > 1 and message[1].isdigit() and int(message[1]) < 27 and self.quote_of_the_month_message is not None:
+            if len(message) > 1 and message[1].isdigit() and int(message[1]) < 20 and self.quote_of_the_month_message is not None:
                 for i in range(0, int(message[1])):
                     await self.quote_of_the_month_message.add_reaction(self.reaction_alphabet[i])
                 await message.delete()
