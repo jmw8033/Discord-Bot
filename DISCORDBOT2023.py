@@ -86,7 +86,7 @@ class MyClient(discord.Client):
         # loop through each file in RawMessages and add to message_list
         if GET_RAW_MESSAGE_HISTORY: 
             for filename in os.listdir(RAW_MESSAGE_DIR):
-                with open(f"{RAW_MESSAGE_DIR}/{filename}", "r") as file:
+                with open(f"{RAW_MESSAGE_DIR}/{filename}", "r", encoding="utf-8") as file:
                     for line in file:
                         self.message_list.append(line.strip())
 
