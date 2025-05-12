@@ -124,7 +124,7 @@ class MyClient(discord.Client):
             return
         
         if message.channel.id == 1118732808752484402: # quotes channel
-            return await self.reactions_handler(message)
+            return await self.quote_channel_handler(message)
         
         # if message is a DM from me, the first word is the destination and the rest is the message
         if isinstance(message.channel, discord.channel.DMChannel):
@@ -148,27 +148,27 @@ class MyClient(discord.Client):
 
 
     async def dm_handler(self, message): # Handle DMs from me
-        message = message.content.split(" ")
-        instruction = message[0].lower()
-        message = message[1:]
+        msg = message.content.split(" ")
+        instruction = msg[0].lower()
+        msg = msg[1:]
 
         # special commands for me
         if message.author.id == MY_ID: 
             if instruction == "send": # send a message to a channel or user
-                if len(message) < 2 or (message[0].lower() != "server" and not message[0].isdigit()):
+                if len(msg) < 2 or (msg[0].lower() != "server" and not msg[0].isdigit()):
                     return
-                return await self.send_message(message[0], " ".join(message[1:]))
+                return await self.send_message(msg[0], " ".join(msg[1:]))
             
             elif instruction == "print": # print a variable
-                if len(message) == 0:
+                if len(msg) == 0:
                     return
-                return print(vars(self).get(message[0], "Not found"))
+                return print(vars(self).get(msg[0], "Not found"))
              
         # special commands for everyone
         if instruction == "tts": # send a TTS message to the voice channel
-            if len(message) == 0:
+            if len(msg) == 0:
                 return
-            return await self.tts_handler(" ".join(message))
+            return await self.tts_handler(" ".join(msg))
                 
 
     async def tts_handler(self, text, voice="Brian"): # Handle TTS messages
@@ -208,17 +208,22 @@ class MyClient(discord.Client):
             await self.intents_handler(message)
 
 
-    async def reactions_handler(self, message): # Handle adding reactions in the quotes channel
-        if message.author.id != MY_ID: # only I can add reactions
+    async def quote_channel_handler(self, message): # Handle quotes channel
+        if message.author.id != MY_ID: # only I can use these commands
             return
-        if "ITS TIME TO VOTE" in message.content: # set the quote of the month message
+        
+        # set the quote of the month message when sent
+        if "ITS TIME TO VOTE" in message.content: 
             self.quote_of_the_month_message = message
-        if message.content.startswith("add"): # add reactions to the quote of the month message, ex. add 3 will add A B C
-            message = message.content.split(" ")
-            if len(message) > 1 and message[1].isdigit() and int(message[1]) < 20 and self.quote_of_the_month_message is not None:
+        
+        # add reactions to the quote of the month message, ex. add 3 will add A B C
+        if message.content.startswith("add"):
+            msg = message.content.split(" ")
+            if len(msg) > 1 and msg[1].isdigit() and int(msg[1]) < 20 and self.quote_of_the_month_message is not None:
                 for i in range(0, int(message[1])):
                     await self.quote_of_the_month_message.add_reaction(self.reaction_alphabet[i])
                 await message.delete()
+        return
             
 
     async def ban_handler(self, message): # Remove all roles from members in message and assign a random role to each
